@@ -56,6 +56,10 @@
   let isFilteredViewActive = false;
   let submitIconSrc = "//codeforces.com/images/icons/submit-22x22.png";
   let userIconSrc = "//codeforces.com/images/icons/user.png";
+  let cachedNativeShowTags = null;
+  let initialNativeShowsTagsForUnsolved = true;
+  let nativeSidebarDebounceTimer = null;
+  let nativeListenersAttached = false;
 
   function naturalSort(a, b) {
     const isLetterA = /^[A-Za-z]/.test(a);
@@ -67,6 +71,171 @@
     const na = parseInt(a.slice(la.length), 10) || 0;
     const nb = parseInt(b.slice(lb.length), 10) || 0;
     return na - nb;
+  }
+
+  function findShowTagsCheckbox() {
+    const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+    for (const cb of allCheckboxes) {
+      if (cb.id && cb.id.startsWith("cflevels-")) continue;
+
+      const id = (cb.id || "").toLowerCase();
+      const name = (cb.name || "").toLowerCase();
+      if (
+        id.includes("showtag") ||
+        name.includes("showtag") ||
+        id.includes("show_tag") ||
+        name.includes("show_tag") ||
+        id.includes("show-tag") ||
+        name.includes("show-tag")
+      ) {
+        return cb;
+      }
+
+      const label =
+        cb.closest("label") ||
+        (cb.id ? document.querySelector(`label[for="${cb.id}"]`) : null) ||
+        cb.parentElement;
+      if (label) {
+        const txt = (label.textContent || "").toLowerCase();
+        if (
+          (txt.includes("tag") && txt.includes("unsolved")) ||
+          (txt.includes("тег") && txt.includes("нерешен")) ||
+          (txt.includes("show") && txt.includes("tag"))
+        ) {
+          return cb;
+        }
+      }
+    }
+    return null;
+  }
+
+  function detectInitialNativeTagVisibility(table) {
+    if (!table) return true;
+    const rows = table.querySelectorAll("tbody tr, tr");
+    let unsolvedCount = 0;
+    let unsolvedWithTagsCount = 0;
+
+    for (const row of rows) {
+      if (row.classList.contains("accepted-problem")) continue;
+      if (row.querySelector("th")) continue;
+      const td = row.querySelectorAll("td");
+      if (td.length < 2) continue;
+
+      unsolvedCount++;
+      const tags = td[1].querySelectorAll("a.notice");
+      if (tags.length > 0) {
+        unsolvedWithTagsCount++;
+      }
+    }
+
+    if (unsolvedCount > 0) {
+      return unsolvedWithTagsCount > 0;
+    }
+    return true;
+  }
+
+  function shouldShowTagsForUnsolved() {
+    const cb = findShowTagsCheckbox();
+    if (cb) {
+      return cb.checked;
+    }
+    if (cachedNativeShowTags !== null) {
+      return cachedNativeShowTags;
+    }
+    return initialNativeShowsTagsForUnsolved;
+  }
+
+  function updateNativeSnapshotIfIdle() {
+    if (!isFilteredViewActive && tableTbody) {
+      nativeTbodyHTML = tableTbody.innerHTML;
+      const paginationEl = document.querySelector(".pagination:not(.cflevels-pagination)");
+      if (paginationEl) {
+        nativePaginationHTML = paginationEl.outerHTML;
+      }
+    }
+  }
+
+  function attachNativeSettingsListeners() {
+    document.addEventListener("change", (e) => {
+      const target = e.target;
+      if (!target || target.id?.startsWith("cflevels-")) return;
+
+      const showTagsCb = findShowTagsCheckbox();
+      if (target === showTagsCb) {
+        cachedNativeShowTags = target.checked;
+        if (isFilteredViewActive) {
+          renderFilteredTable();
+        }
+        return;
+      }
+
+      const sidebar = document.getElementById("sidebar");
+      if (sidebar && sidebar.contains(target)) {
+        if (isFilteredViewActive) {
+          renderFilteredTable();
+          populateLevelMultiSelect();
+        } else {
+          updateNativeSnapshotIfIdle();
+        }
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      const target = e.target;
+      if (!target || target.id?.startsWith("cflevels-")) return;
+
+      const showTagsCb = findShowTagsCheckbox();
+      if (target === showTagsCb || (showTagsCb && showTagsCb.contains(target))) {
+        setTimeout(() => {
+          if (showTagsCb) {
+            cachedNativeShowTags = showTagsCb.checked;
+            if (isFilteredViewActive) {
+              renderFilteredTable();
+            }
+          }
+        }, 0);
+      }
+    });
+  }
+
+  function observeNativeSidebar() {
+    const sidebar = document.getElementById("sidebar");
+    if (!sidebar) return;
+
+    const observer = new MutationObserver((mutations) => {
+      let relevantChange = false;
+      for (const m of mutations) {
+        if (m.target && m.target.closest && m.target.closest("#cflevels-sidebar-box")) {
+          continue;
+        }
+        if (
+          (m.target.closest && (m.target.closest("._FilterByTagsFrame_main") || m.target.closest(".sidebox"))) ||
+          m.type === "childList"
+        ) {
+          relevantChange = true;
+          break;
+        }
+      }
+
+      if (relevantChange) {
+        clearTimeout(nativeSidebarDebounceTimer);
+        nativeSidebarDebounceTimer = setTimeout(() => {
+          if (isFilteredViewActive) {
+            renderFilteredTable();
+            populateLevelMultiSelect();
+          } else {
+            updateNativeSnapshotIfIdle();
+          }
+        }, 100);
+      }
+    });
+
+    observer.observe(sidebar, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "checked", "value", "data-name"],
+    });
   }
 
   function getActiveNativeFilters() {
@@ -117,6 +286,33 @@
             tags.push(name.toLowerCase());
           }
         });
+
+        document.querySelectorAll("._FilterByTagsFrame_main input[type='checkbox']:checked, #sidebar input[type='checkbox']:checked").forEach((cb) => {
+          if (cb.id?.startsWith("cflevels-")) return;
+          const showTagsCb = findShowTagsCheckbox();
+          if (cb === showTagsCb) return;
+
+          const val = (cb.value || "").trim().toLowerCase();
+          const name = (cb.name || "").trim().toLowerCase();
+          const label = cb.closest("label")?.textContent?.trim().toLowerCase();
+
+          if (val === "combine-tags-by-or" || name === "combine-tags-by-or" || (label && label.includes("combine tags by or"))) {
+            isOrLogic = true;
+            return;
+          }
+
+          const tagCandidate = val || label;
+          if (tagCandidate && tagCandidate !== "on" && tagCandidate !== "true" && !tags.includes(tagCandidate)) {
+            tags.push(tagCandidate);
+          }
+        });
+      }
+
+      if (!isOrLogic) {
+        const orCb = document.querySelector("input[name*='combineTagsByOr' i], input[id*='combineTagsByOr' i], input[value='combine-tags-by-or']");
+        if (orCb && orCb.checked) {
+          isOrLogic = true;
+        }
       }
 
       if (minRating === null) {
@@ -275,6 +471,8 @@
     const headerRow = tableTbody.querySelector("tr:first-child");
     const headerHTML = headerRow ? headerRow.outerHTML : "";
 
+    const showTagsUnsolved = shouldShowTagsForUnsolved();
+
     const rowsHTML = pageProblems
       .map((p) => {
         const cid = p.contestId;
@@ -297,12 +495,14 @@
           .join(", ");
         const isSolved = solvedProblems.has(`${cid}_${idx}`);
         const trClass = isSolved ? `class="accepted-problem"` : "";
+        const showTags = isSolved || showTagsUnsolved;
+        const tagsHTML = showTags ? tags : "";
 
         return `<tr ${trClass}>
           <td class="id"><a href="/problemset/problem/${cid}/${idx}">${cid}${idx}</a></td>
           <td>
             <div style="float: left;"><a href="/problemset/problem/${cid}/${idx}">${name}</a></div>
-            <div style="float: right; font-size: 1.1rem; padding-top: 1px; text-align: right;">${tags}</div>
+            <div class="cflevels-tags-container" style="float: right; font-size: 1.1rem; padding-top: 1px; text-align: right;">${tagsHTML}</div>
           </td>
           <td class="act">
             <span class="act-item"><a href="/problemset/submit/${cid}/${idx}"><img src="${submitIconSrc}" title="Submit" alt="Submit"/></a></span>
@@ -391,6 +591,15 @@
 
     if (tableTbody && nativeTbodyHTML) {
       tableTbody.innerHTML = nativeTbodyHTML;
+      const showTags = shouldShowTagsForUnsolved();
+      if (!showTags) {
+        tableTbody.querySelectorAll("tr:not(.accepted-problem)").forEach((row) => {
+          const tagDiv = row.querySelector("td:nth-child(2) div[style*='float: right']");
+          if (tagDiv) {
+            tagDiv.style.display = "none";
+          }
+        });
+      }
     }
 
     const paginationEl = document.querySelector(".pagination");
@@ -613,10 +822,17 @@
 
     if (!nativeTbodyHTML) {
       nativeTbodyHTML = tableTbody.innerHTML;
+      initialNativeShowsTagsForUnsolved = detectInitialNativeTagVisibility(table);
     }
     const nativePagination = document.querySelector(".pagination");
     if (nativePagination && !nativePaginationHTML) {
       nativePaginationHTML = nativePagination.outerHTML;
+    }
+
+    if (!nativeListenersAttached) {
+      attachNativeSettingsListeners();
+      observeNativeSidebar();
+      nativeListenersAttached = true;
     }
 
     const subImg = table.querySelector("td.act img");
