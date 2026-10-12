@@ -1,55 +1,58 @@
 # CFLevels
 
-A lightweight Chrome extension that adds a **Contest Type** and **Problem Level** filter directly to the Codeforces problemset page (`/problemset`).
+A Chrome extension that adds **Contest Type** and **Problem Level** filters directly to the Codeforces problemset page.
+
+![CFLevels Preview](assets/screenshot.png)
 
 ---
 
-## The Problem
+## Why this exists
 
-Codeforces provides native filters for problem tags and difficulty rating ranges, but there is no built-in way to filter by **contest type** (Div. 1, Div. 2, Div. 3, Div. 4, Educational, etc.) or **problem level** (A, B, C, D, etc.).
+When practicing on `/problemset`, rating filters only tell part of the story. A 1600 Div. 2 C feels very different from a 1600 Div. 1 A or an old math puzzle from 2013.
 
-If you want to practice all Div. 2 C problems or grind Div. 3 D & E, rating alone does not tell the full story—a 1600 Div. 2 C has a completely different contest feel from an old marathon problem or a Div. 1 A.
+If you want to target a specific hurdle (like grinding Div. 2 C problems to stop choking mid-contest, or practicing Div. 3 D and E), Codeforces does not offer a way to filter by contest division or problem letter. 
+
+CFLevels adds a **→ Filter by Level** box right into the sidebar on `/problemset` to solve this.
 
 ---
 
 ## Features
 
-- **Multi-Select Contest Types**: Choose one or multiple contest divisions (Div. 1, Div. 2, Div. 3, Div. 4, Educational, Global, CodeTON, etc.).
-- **Multi-Select Problem Levels**: Select single or multiple problem letters (e.g. `C` and `D`).
-- **Works with Native Filters**: Combine seamlessly with Codeforces tags (`dp`, `graphs`, etc.) and difficulty rating ranges (`1400-1600`).
-- **Smart Narrowing**: Level options dynamically adapt to show only levels that actually exist for your selected contest types and tags.
-- **100 Problems per Page**: Clean pagination sorted newest to oldest, with your solved problems highlighted.
-- **Native Look & Feel**: Styled to blend seamlessly with Codeforces' roundbox layout and contest filter dropdowns.
-- **Fast & Private**: Runs 100% client-side using public Codeforces API endpoints. Zero tracking, no accounts or external servers.
+- **Multi-select contest types**: Div. 1, Div. 2, Div. 3, Div. 4, Educational, Global, CodeTON, and others.
+- **Multi-select problem levels**: Pick single or multiple letters (for example, practicing both `C` and `D` problems together).
+- **Works with native filters**: Combine it directly with Codeforces tags (`dp`, `graphs`) and difficulty rating ranges (`1400-1600`).
+- **Smart narrowing**: The level list automatically adjusts to show only letters that actually exist for your selected contest types and tags.
+- **Native look**: Styled to match Codeforces' own roundbox borders and contest-page multi-select dropdowns.
+- **Fast and private**: Runs entirely in your browser using public Codeforces API endpoints (`contest.list` and `problemset.problems`). No tracking, no external servers, no login required.
 
 ---
 
 ## Installation
 
-### Option 1: Chrome Web Store
-*(Link coming soon)*
+### From Chrome Web Store
+*(Pending review, link will be added once live)*
 
-### Option 2: Load Unpacked (Developer Mode)
+### Load Unpacked (Manual)
 
 1. Clone or download this repository:
    ```bash
    git clone https://github.com/ShubhamPhapale/CFLevels.git
    ```
-2. Open Google Chrome and navigate to `chrome://extensions`.
-3. Enable **Developer mode** in the top right corner.
-4. Click **Load unpacked** in the top left corner.
+2. Open Google Chrome and go to `chrome://extensions`.
+3. Turn on **Developer mode** in the top right.
+4. Click **Load unpacked** in the top left.
 5. Select the `CFLevels` folder.
-6. Open [Codeforces Problemset](https://codeforces.com/problemset) and the filter box will appear in the right sidebar.
+6. Open [Codeforces Problemset](https://codeforces.com/problemset). The filter box will appear in the right sidebar below the native filter box.
 
 ---
 
 ## Author
 
 **Shubham Phapale**  
-- GitHub: [@ShubhamPhapale](https://github.com/ShubhamPhapale)
+GitHub: [@ShubhamPhapale](https://github.com/ShubhamPhapale)
 
 ---
 
 ## License
 
-MIT License. Feel free to use, modify, and contribute!
+MIT
