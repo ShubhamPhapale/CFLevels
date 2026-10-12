@@ -14,7 +14,7 @@ With the massive growth in active participation (from a few thousand contest ent
 
 If you want to target realistic contest practice (like grinding current Div. 2 C problems to stop choking mid-contest, or drilling Div. 3 D and E), filtering purely by rating ends up mixing in decade-old rounds with completely different difficulty curves.
 
-CFLevels adds a **→ Filter by Level** box right into the sidebar on `/problemset` to solve this.
+This project came directly out of my own frustration and personal need while practicing. I wanted a way to focus on contemporary Div. 2 C problems without manually hunting through past contests, so I built **CFLevels** to add a **→ Filter by Level** box right into the sidebar on `/problemset`.
 
 ---
 
