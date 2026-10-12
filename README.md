@@ -24,6 +24,7 @@ This project came directly out of my own frustration and personal need while pra
 - **Multi-select problem levels**: Pick single or multiple letters (for example, practicing both `C` and `D` problems together).
 - **Works with native filters**: Combine it directly with Codeforces tags (`dp`, `graphs`) and difficulty rating ranges (`1400-1600`).
 - **Smart narrowing**: The level list automatically adjusts to show only letters that actually exist for your selected contest types and tags.
+- **Preserves contest ordering**: Keeps problems sorted from newest to oldest by default, while still allowing you to use Codeforces' native reordering (by rating or solved count).
 - **Native look**: Styled to match Codeforces' own roundbox borders and contest-page multi-select dropdowns.
 - **Fast and private**: Runs entirely in your browser using public Codeforces API endpoints (`contest.list` and `problemset.problems`). No tracking, no external servers, no login required.
 
