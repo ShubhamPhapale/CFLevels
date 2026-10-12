@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "CFLevels",
+  "version": "1.4.0",
+  "description": "Filter Codeforces problemset by contest type (Div. 1, Div. 2, etc.) and problem level (A, A1, B, C, etc.)",
+  "author": "Shubham Phapale",
+  "homepage_url": "https://github.com/ShubhamPhapale/CFLevels",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "*://codeforces.com/*",
+    "*://*.codeforces.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://codeforces.com/problemset*",
+        "*://*.codeforces.com/problemset*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

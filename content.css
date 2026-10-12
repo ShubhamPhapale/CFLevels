@@ -1,0 +1,248 @@
+/* Sidebar box */
+
+#cflevels-sidebar-box {
+  margin-bottom: 1.5em;
+  background-color: #fff;
+}
+
+#cflevels-sidebar-box .caption.titled {
+  color: #3b5998;
+  font-size: 1.5rem;
+  font-weight: bold;
+  padding: 0 0 0.3em 0.5em;
+  border-bottom: 1px solid rgb(185, 185, 185);
+  position: relative;
+}
+
+#cflevels-sidebar-box .cflevels-body {
+  padding: 0.7em;
+}
+
+#cflevels-sidebar-box .cflevels-field {
+  margin-bottom: 0.7em;
+  position: relative;
+}
+
+#cflevels-sidebar-box .cflevels-field:first-of-type {
+  z-index: 20;
+}
+
+#cflevels-sidebar-box .cflevels-field:nth-of-type(2) {
+  z-index: 10;
+}
+
+#cflevels-sidebar-box .cflevels-field-label {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 0.3em;
+}
+
+#cflevels-sidebar-box select {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 1.2rem;
+  padding: 3px 4px;
+  border: 1px solid #aaa;
+  border-radius: 2px;
+  background-color: #fff;
+  color: #000;
+  font-family: verdana, arial, sans-serif;
+  cursor: pointer;
+}
+
+#cflevels-sidebar-box select:focus {
+  outline: none;
+  border-color: #3b5998;
+}
+
+/* Multi-select dropdown */
+.cflevels-multiselect {
+  position: relative;
+  width: 100%;
+}
+
+.cflevels-multiselect-trigger {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 1.2rem;
+  padding: 3px 22px 3px 6px;
+  border: 1px solid #aaa;
+  border-radius: 2px;
+  background-color: #fff;
+  color: #000;
+  font-family: verdana, arial, sans-serif;
+  cursor: pointer;
+  position: relative;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.cflevels-multiselect-trigger:focus,
+.cflevels-multiselect-trigger.open {
+  outline: none;
+  border-color: #3b5998;
+}
+
+.cflevels-multiselect-arrow {
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #000;
+  pointer-events: none;
+}
+
+.cflevels-placeholder {
+  font-style: italic;
+  color: #888;
+}
+
+.cflevels-selected-text {
+  font-style: normal;
+  color: #000;
+  font-weight: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: calc(100% - 15px);
+}
+
+.cflevels-multiselect-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background-color: #fff;
+  border: 1px solid #aaa;
+  border-radius: 0 0 2px 2px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+  max-height: 220px;
+  overflow-y: auto;
+  margin-top: 1px;
+  display: none;
+}
+
+.cflevels-multiselect-menu.open {
+  display: block;
+}
+
+.cflevels-multiselect-item {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: #000;
+  font-family: verdana, arial, sans-serif;
+  user-select: none;
+}
+
+.cflevels-multiselect-item:last-child {
+  border-bottom: none;
+}
+
+.cflevels-multiselect-item:hover {
+  background-color: #ebf2fa;
+}
+
+.cflevels-multiselect-item input[type="checkbox"] {
+  margin: 0 8px 0 0;
+  cursor: pointer;
+  width: 13px;
+  height: 13px;
+  vertical-align: middle;
+}
+
+.cflevels-multiselect-item label {
+  cursor: pointer;
+  flex: 1;
+}
+
+#cflevels-sidebar-box .cflevels-button-row {
+  text-align: center;
+  margin-top: 1em;
+}
+
+#cflevels-sidebar-box .cflevels-button-row input[type="button"] {
+  margin: 0 auto;
+  padding: 0 1.2em;
+  height: 22px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  font-family: verdana, arial, sans-serif;
+}
+
+#cflevels-sidebar-box .cflevels-status {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #555;
+  margin-top: 0.5em;
+  min-height: 1.2em;
+}
+
+/* Pagination */
+
+.cflevels-pagination {
+  margin: 1.2em 0;
+  text-align: right;
+  font-family: verdana, arial, sans-serif;
+}
+
+.cflevels-pagination ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.cflevels-pagination li {
+  display: inline-block;
+}
+
+.cflevels-pagination a {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 1.2rem;
+  text-decoration: none;
+  color: #3b5998;
+  cursor: pointer;
+  border: 1px solid transparent;
+  border-radius: 2px;
+}
+
+.cflevels-pagination a:hover {
+  text-decoration: underline;
+}
+
+.cflevels-pagination .active a {
+  background-color: #3b5998;
+  color: #fff !important;
+  text-decoration: none !important;
+  font-weight: bold;
+}
+
+.cflevels-pagination .dots {
+  padding: 2px 4px;
+  font-size: 1.2rem;
+  color: #888;
+}
+
+.cflevels-pagination .arrow-disabled {
+  display: inline-block;
+  padding: 2px 7px;
+  font-size: 1.2rem;
+  color: #aaa !important;
+  cursor: default !important;
+  text-decoration: none !important;
+}
