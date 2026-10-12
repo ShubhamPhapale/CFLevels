@@ -10,7 +10,7 @@ A Chrome extension that adds **Contest Type** and **Problem Level** filters dire
 
 When practicing on `/problemset`, difficulty ratings alone do not tell the whole story. A 1600-rated problem today looks very different from a 1600-rated problem from an older round.
 
-With the massive growth in active participation (from a few thousand contest entrants years ago to over 30,000 today) and shifting rating calibrations over the years, the contest meta has changed substantially. Older 1600s often lean toward obscure ad-hoc math, whereas a modern Div. 2 C rated 1600 tests contest speed, implementation, and contemporary problem patterns.
+With the massive growth in active participation (from a few thousand contest entrants years ago to over 30,000 today) and shifting rating calibrations over the years, the contest meta has changed substantially and for a few other reasons as well (ykyk).
 
 If you want to target realistic contest practice (like grinding current Div. 2 C problems to stop choking mid-contest, or drilling Div. 3 D and E), filtering purely by rating ends up mixing in decade-old rounds with completely different difficulty curves.
 
