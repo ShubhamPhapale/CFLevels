@@ -58,7 +58,7 @@
   let userIconSrc = "//codeforces.com/images/icons/user.png";
   let cachedNativeShowTags = null;
   let initialNativeShowsTagsForUnsolved = true;
-  let nativeSidebarDebounceTimer = null;
+  let hideSolvedProblems = false;
   let nativeListenersAttached = false;
 
   function naturalSort(a, b) {
@@ -145,97 +145,166 @@
     return initialNativeShowsTagsForUnsolved;
   }
 
-  function updateNativeSnapshotIfIdle() {
-    if (!isFilteredViewActive && tableTbody) {
-      nativeTbodyHTML = tableTbody.innerHTML;
-      const paginationEl = document.querySelector(".pagination:not(.cflevels-pagination)");
-      if (paginationEl) {
-        nativePaginationHTML = paginationEl.outerHTML;
+  function findExternalHideSolvedCheckbox() {
+    const all = document.querySelectorAll('input[type="checkbox"]');
+    for (const cb of all) {
+      if (cb.id === "cflevels-hide-solved" || cb.id?.startsWith("cflevels-")) continue;
+
+      const id = (cb.id || "").toLowerCase();
+      const name = (cb.name || "").toLowerCase();
+      if (
+        id.includes("hidesolved") ||
+        name.includes("hidesolved") ||
+        id.includes("hide_solved") ||
+        name.includes("hide_solved") ||
+        id.includes("hide-solved") ||
+        name.includes("hide-solved") ||
+        id.includes("hideaccepted") ||
+        name.includes("hideaccepted")
+      ) {
+        return cb;
       }
+
+      const label =
+        cb.closest("label") ||
+        (cb.id ? document.querySelector(`label[for="${cb.id}"]`) : null) ||
+        cb.parentElement;
+      if (label) {
+        const txt = (label.textContent || "").toLowerCase();
+        if (
+          (txt.includes("hide") && txt.includes("solve")) ||
+          (txt.includes("hide") && txt.includes("accept")) ||
+          (txt.includes("скрыть") && txt.includes("решен"))
+        ) {
+          return cb;
+        }
+      }
+    }
+    return null;
+  }
+
+  function isHideSolvedActive() {
+    const extCb = findExternalHideSolvedCheckbox();
+    if (extCb) {
+      return extCb.checked;
+    }
+    const ownCb = document.getElementById("cflevels-hide-solved");
+    if (ownCb) {
+      return ownCb.checked;
+    }
+    return hideSolvedProblems;
+  }
+
+  function setHideSolved(val) {
+    hideSolvedProblems = !!val;
+    try {
+      sessionStorage.setItem("cflevels_hide_solved", hideSolvedProblems ? "1" : "0");
+    } catch (_) {}
+
+    const ownCb = document.getElementById("cflevels-hide-solved");
+    if (ownCb && ownCb.checked !== hideSolvedProblems) {
+      ownCb.checked = hideSolvedProblems;
+    }
+
+    const extCb = findExternalHideSolvedCheckbox();
+    if (extCb && extCb.checked !== hideSolvedProblems) {
+      extCb.checked = hideSolvedProblems;
+    }
+
+    if (isFilteredViewActive) {
+      currentPage = 1;
+      renderFilteredTable();
+    } else {
+      updateNativeAcceptedProblemsVisibility();
     }
   }
 
-  function attachNativeSettingsListeners() {
-    document.addEventListener("change", (e) => {
-      const target = e.target;
-      if (!target || target.id?.startsWith("cflevels-")) return;
-
-      const showTagsCb = findShowTagsCheckbox();
-      if (target === showTagsCb) {
-        cachedNativeShowTags = target.checked;
-        if (isFilteredViewActive) {
-          renderFilteredTable();
-        }
-        return;
-      }
-
-      const sidebar = document.getElementById("sidebar");
-      if (sidebar && sidebar.contains(target)) {
-        if (isFilteredViewActive) {
-          renderFilteredTable();
-          populateLevelMultiSelect();
-        } else {
-          updateNativeSnapshotIfIdle();
-        }
-      }
-    });
-
-    document.addEventListener("click", (e) => {
-      const target = e.target;
-      if (!target || target.id?.startsWith("cflevels-")) return;
-
-      const showTagsCb = findShowTagsCheckbox();
-      if (target === showTagsCb || (showTagsCb && showTagsCb.contains(target))) {
-        setTimeout(() => {
-          if (showTagsCb) {
-            cachedNativeShowTags = showTagsCb.checked;
-            if (isFilteredViewActive) {
-              renderFilteredTable();
-            }
-          }
-        }, 0);
-      }
+  function updateNativeAcceptedProblemsVisibility() {
+    if (!tableTbody) return;
+    const hide = isHideSolvedActive();
+    tableTbody.querySelectorAll("tr.accepted-problem").forEach((row) => {
+      row.style.display = hide ? "none" : "";
     });
   }
 
-  function observeNativeSidebar() {
-    const sidebar = document.getElementById("sidebar");
-    if (!sidebar) return;
+  function attachNativeSettingsListeners() {
+    document.addEventListener(
+      "change",
+      (e) => {
+        const target = e.target;
+        if (!target) return;
 
-    const observer = new MutationObserver((mutations) => {
-      let relevantChange = false;
-      for (const m of mutations) {
-        if (m.target && m.target.closest && m.target.closest("#cflevels-sidebar-box")) {
-          continue;
+        const showTagsCb = findShowTagsCheckbox();
+        if (target === showTagsCb) {
+          cachedNativeShowTags = target.checked;
+          if (isFilteredViewActive) {
+            renderFilteredTable();
+          }
+          return;
         }
-        if (
-          (m.target.closest && (m.target.closest("._FilterByTagsFrame_main") || m.target.closest(".sidebox"))) ||
-          m.type === "childList"
-        ) {
-          relevantChange = true;
-          break;
-        }
-      }
 
-      if (relevantChange) {
-        clearTimeout(nativeSidebarDebounceTimer);
-        nativeSidebarDebounceTimer = setTimeout(() => {
+        const extHideCb = findExternalHideSolvedCheckbox();
+        const ownHideCb = document.getElementById("cflevels-hide-solved");
+        if (target === extHideCb || target === ownHideCb) {
+          setHideSolved(target.checked);
+          return;
+        }
+
+        const sidebar = document.getElementById("sidebar");
+        if (sidebar && sidebar.contains(target) && !target.id?.startsWith("cflevels-")) {
           if (isFilteredViewActive) {
             renderFilteredTable();
             populateLevelMultiSelect();
-          } else {
-            updateNativeSnapshotIfIdle();
           }
-        }, 100);
-      }
-    });
+        }
+      },
+      { passive: true }
+    );
 
-    observer.observe(sidebar, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["class", "checked", "value", "data-name"],
-    });
+    document.addEventListener(
+      "click",
+      (e) => {
+        const target = e.target;
+        if (!target) return;
+
+        const showTagsCb = findShowTagsCheckbox();
+        if (target === showTagsCb) {
+          setTimeout(() => {
+            if (showTagsCb) {
+              cachedNativeShowTags = showTagsCb.checked;
+              if (isFilteredViewActive) {
+                renderFilteredTable();
+              }
+            }
+          }, 0);
+          return;
+        }
+
+        const clickable = target.closest("a, button, input");
+        if (clickable && !clickable.id?.startsWith("cflevels-")) {
+          const txt = (clickable.textContent || clickable.value || "").toLowerCase();
+          if (
+            txt.includes("solved problem") ||
+            (txt.includes("hide") && txt.includes("solve")) ||
+            (txt.includes("show") && txt.includes("solve"))
+          ) {
+            setTimeout(() => {
+              const extCb = findExternalHideSolvedCheckbox();
+              if (extCb) {
+                setHideSolved(extCb.checked);
+              } else {
+                const acc = document.querySelector("tr.accepted-problem");
+                if (acc) {
+                  const isHidden = acc.style.display === "none" || window.getComputedStyle(acc).display === "none";
+                  setHideSolved(isHidden);
+                }
+              }
+            }, 50);
+          }
+        }
+      },
+      { passive: true }
+    );
   }
 
   function getActiveNativeFilters() {
@@ -431,6 +500,8 @@
 
     const nativeFilters = getActiveNativeFilters();
 
+    const hideSolved = isHideSolvedActive();
+
     const filtered = allProblems.filter((p) => {
       if (!matchesNativeFilters(p, nativeFilters)) return false;
 
@@ -441,6 +512,10 @@
       if (selectedLevels.size > 0) {
         const idx = (p.index || "").toUpperCase();
         if (!selectedLevels.has(idx)) return false;
+      }
+      if (hideSolved) {
+        const isSolved = solvedProblems.has(`${p.contestId}_${p.index}`);
+        if (isSolved) return false;
       }
       return true;
     });
@@ -600,6 +675,7 @@
           }
         });
       }
+      updateNativeAcceptedProblemsVisibility();
     }
 
     const paginationEl = document.querySelector(".pagination");
@@ -831,9 +907,10 @@
 
     if (!nativeListenersAttached) {
       attachNativeSettingsListeners();
-      observeNativeSidebar();
       nativeListenersAttached = true;
     }
+
+    updateNativeAcceptedProblemsVisibility();
 
     const subImg = table.querySelector("td.act img");
     if (subImg && subImg.src) submitIconSrc = subImg.src;
@@ -953,6 +1030,29 @@
           closeAllMenus();
         }
       });
+
+      const optionRow = document.createElement("div");
+      optionRow.className = "cflevels-option-row";
+
+      const hideSolvedLabel = document.createElement("label");
+      hideSolvedLabel.className = "cflevels-checkbox-label";
+
+      const hideSolvedCb = document.createElement("input");
+      hideSolvedCb.type = "checkbox";
+      hideSolvedCb.id = "cflevels-hide-solved";
+      hideSolvedCb.checked = isHideSolvedActive();
+
+      const hideSolvedText = document.createElement("span");
+      hideSolvedText.textContent = "Hide solved problems";
+
+      hideSolvedCb.addEventListener("change", () => {
+        setHideSolved(hideSolvedCb.checked);
+      });
+
+      hideSolvedLabel.appendChild(hideSolvedCb);
+      hideSolvedLabel.appendChild(hideSolvedText);
+      optionRow.appendChild(hideSolvedLabel);
+      body.appendChild(optionRow);
 
       const btnRow = document.createElement("div");
       btnRow.className = "cflevels-button-row";
@@ -1154,6 +1254,8 @@
           });
           if (isFilteredViewActive) {
             renderFilteredTable();
+          } else {
+            updateNativeAcceptedProblemsVisibility();
           }
         }
       }
@@ -1186,6 +1288,11 @@
         if (oldLevel) {
           selectedLevels = new Set([oldLevel]);
         }
+      }
+
+      const storedHideSolved = sessionStorage.getItem("cflevels_hide_solved");
+      if (storedHideSolved !== null) {
+        hideSolvedProblems = storedHideSolved === "1";
       }
     } catch (_) {}
 
