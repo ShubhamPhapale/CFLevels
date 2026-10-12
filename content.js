@@ -50,15 +50,12 @@
   let levelMenu = null;
   let sideStatusEl = null;
   let problemsTable = null;
-  let tableTbody = null;
-  let nativeTbodyHTML = "";
-  let nativePaginationHTML = "";
+  let nativeTbody = null;
+  let cflevelsTbody = null;
+  let cflevelsPaginationEl = null;
   let isFilteredViewActive = false;
   let submitIconSrc = "//codeforces.com/images/icons/submit-22x22.png";
   let userIconSrc = "//codeforces.com/images/icons/user.png";
-  let cachedNativeShowTags = null;
-  let initialNativeShowsTagsForUnsolved = true;
-  let hideSolvedProblems = false;
   let nativeListenersAttached = false;
 
   function naturalSort(a, b) {
@@ -109,46 +106,27 @@
     return null;
   }
 
-  function detectInitialNativeTagVisibility(table) {
-    if (!table) return true;
-    const rows = table.querySelectorAll("tbody tr, tr");
-    let unsolvedCount = 0;
-    let unsolvedWithTagsCount = 0;
-
-    for (const row of rows) {
-      if (row.classList.contains("accepted-problem")) continue;
-      if (row.querySelector("th")) continue;
-      const td = row.querySelectorAll("td");
-      if (td.length < 2) continue;
-
-      unsolvedCount++;
-      const tags = td[1].querySelectorAll("a.notice");
-      if (tags.length > 0) {
-        unsolvedWithTagsCount++;
-      }
-    }
-
-    if (unsolvedCount > 0) {
-      return unsolvedWithTagsCount > 0;
-    }
-    return true;
-  }
-
   function shouldShowTagsForUnsolved() {
     const cb = findShowTagsCheckbox();
     if (cb) {
       return cb.checked;
     }
-    if (cachedNativeShowTags !== null) {
-      return cachedNativeShowTags;
+    if (nativeTbody) {
+      const unsolvedRow = nativeTbody.querySelector("tr:not(.accepted-problem):not(:first-child)");
+      if (unsolvedRow) {
+        const tagDiv = unsolvedRow.querySelector("td:nth-child(2) div[style*='float: right']");
+        if (tagDiv) {
+          return tagDiv.style.display !== "none" && tagDiv.innerHTML.trim() !== "";
+        }
+      }
     }
-    return initialNativeShowsTagsForUnsolved;
+    return true;
   }
 
   function findExternalHideSolvedCheckbox() {
     const all = document.querySelectorAll('input[type="checkbox"]');
     for (const cb of all) {
-      if (cb.id === "cflevels-hide-solved" || cb.id?.startsWith("cflevels-")) continue;
+      if (cb.id && cb.id.startsWith("cflevels-")) continue;
 
       const id = (cb.id || "").toLowerCase();
       const name = (cb.name || "").toLowerCase();
@@ -183,80 +161,34 @@
     return null;
   }
 
-  function isHideSolvedActive() {
-    const extCb = findExternalHideSolvedCheckbox();
-    if (extCb) {
-      return extCb.checked;
+  function isNativeHidingSolved() {
+    const cb = findExternalHideSolvedCheckbox();
+    if (cb) {
+      return cb.checked;
     }
-    const ownCb = document.getElementById("cflevels-hide-solved");
-    if (ownCb) {
-      return ownCb.checked;
+    if (nativeTbody) {
+      const accRow = nativeTbody.querySelector("tr.accepted-problem");
+      if (accRow) {
+        return accRow.style.display === "none";
+      }
     }
-    return hideSolvedProblems;
-  }
-
-  function setHideSolved(val) {
-    hideSolvedProblems = !!val;
-    try {
-      sessionStorage.setItem("cflevels_hide_solved", hideSolvedProblems ? "1" : "0");
-    } catch (_) {}
-
-    const ownCb = document.getElementById("cflevels-hide-solved");
-    if (ownCb && ownCb.checked !== hideSolvedProblems) {
-      ownCb.checked = hideSolvedProblems;
-    }
-
-    const extCb = findExternalHideSolvedCheckbox();
-    if (extCb && extCb.checked !== hideSolvedProblems) {
-      extCb.checked = hideSolvedProblems;
-    }
-
-    if (isFilteredViewActive) {
-      currentPage = 1;
-      renderFilteredTable();
-    } else {
-      updateNativeAcceptedProblemsVisibility();
-    }
-  }
-
-  function updateNativeAcceptedProblemsVisibility() {
-    if (!tableTbody) return;
-    const hide = isHideSolvedActive();
-    tableTbody.querySelectorAll("tr.accepted-problem").forEach((row) => {
-      row.style.display = hide ? "none" : "";
-    });
+    return false;
   }
 
   function attachNativeSettingsListeners() {
     document.addEventListener(
       "change",
       (e) => {
+        if (!isFilteredViewActive) return;
         const target = e.target;
-        if (!target) return;
+        if (!target || target.id?.startsWith("cflevels-")) return;
 
-        const showTagsCb = findShowTagsCheckbox();
-        if (target === showTagsCb) {
-          cachedNativeShowTags = target.checked;
-          if (isFilteredViewActive) {
-            renderFilteredTable();
-          }
-          return;
-        }
-
-        const extHideCb = findExternalHideSolvedCheckbox();
-        const ownHideCb = document.getElementById("cflevels-hide-solved");
-        if (target === extHideCb || target === ownHideCb) {
-          setHideSolved(target.checked);
-          return;
-        }
-
-        const sidebar = document.getElementById("sidebar");
-        if (sidebar && sidebar.contains(target) && !target.id?.startsWith("cflevels-")) {
+        setTimeout(() => {
           if (isFilteredViewActive) {
             renderFilteredTable();
             populateLevelMultiSelect();
           }
-        }
+        }, 0);
       },
       { passive: true }
     );
@@ -264,43 +196,18 @@
     document.addEventListener(
       "click",
       (e) => {
+        if (!isFilteredViewActive) return;
         const target = e.target;
-        if (!target) return;
+        if (!target || target.closest("#cflevels-sidebar-box")) return;
 
-        const showTagsCb = findShowTagsCheckbox();
-        if (target === showTagsCb) {
+        const sidebar = document.getElementById("sidebar");
+        if (sidebar && sidebar.contains(target)) {
           setTimeout(() => {
-            if (showTagsCb) {
-              cachedNativeShowTags = showTagsCb.checked;
-              if (isFilteredViewActive) {
-                renderFilteredTable();
-              }
+            if (isFilteredViewActive) {
+              renderFilteredTable();
+              populateLevelMultiSelect();
             }
-          }, 0);
-          return;
-        }
-
-        const clickable = target.closest("a, button, input");
-        if (clickable && !clickable.id?.startsWith("cflevels-")) {
-          const txt = (clickable.textContent || clickable.value || "").toLowerCase();
-          if (
-            txt.includes("solved problem") ||
-            (txt.includes("hide") && txt.includes("solve")) ||
-            (txt.includes("show") && txt.includes("solve"))
-          ) {
-            setTimeout(() => {
-              const extCb = findExternalHideSolvedCheckbox();
-              if (extCb) {
-                setHideSolved(extCb.checked);
-              } else {
-                const acc = document.querySelector("tr.accepted-problem");
-                if (acc) {
-                  const isHidden = acc.style.display === "none" || window.getComputedStyle(acc).display === "none";
-                  setHideSolved(isHidden);
-                }
-              }
-            }, 50);
-          }
+          }, 50);
         }
       },
       { passive: true }
@@ -496,11 +403,10 @@
   }
 
   function renderFilteredTable() {
-    if (!problemsTable || !tableTbody) return;
+    if (!problemsTable || !cflevelsTbody) return;
 
     const nativeFilters = getActiveNativeFilters();
-
-    const hideSolved = isHideSolvedActive();
+    const hideSolved = isNativeHidingSolved();
 
     const filtered = allProblems.filter((p) => {
       if (!matchesNativeFilters(p, nativeFilters)) return false;
@@ -543,7 +449,7 @@
     const endIdx = Math.min(startIdx + PROBLEMS_PER_PAGE, totalCount);
     const pageProblems = filtered.slice(startIdx, endIdx);
 
-    const headerRow = tableTbody.querySelector("tr:first-child");
+    const headerRow = nativeTbody ? nativeTbody.querySelector("tr:first-child") : null;
     const headerHTML = headerRow ? headerRow.outerHTML : "";
 
     const showTagsUnsolved = shouldShowTagsForUnsolved();
@@ -571,13 +477,12 @@
         const isSolved = solvedProblems.has(`${cid}_${idx}`);
         const trClass = isSolved ? `class="accepted-problem"` : "";
         const showTags = isSolved || showTagsUnsolved;
-        const tagsHTML = showTags ? tags : "";
 
         return `<tr ${trClass}>
           <td class="id"><a href="/problemset/problem/${cid}/${idx}">${cid}${idx}</a></td>
           <td>
             <div style="float: left;"><a href="/problemset/problem/${cid}/${idx}">${name}</a></div>
-            <div class="cflevels-tags-container" style="float: right; font-size: 1.1rem; padding-top: 1px; text-align: right;">${tagsHTML}</div>
+            <div style="float: right; font-size: 1.1rem; padding-top: 1px; text-align: right;${showTags ? "" : " display: none;"}">${tags}</div>
           </td>
           <td class="act">
             <span class="act-item"><a href="/problemset/submit/${cid}/${idx}"><img src="${submitIconSrc}" title="Submit" alt="Submit"/></a></span>
@@ -588,7 +493,14 @@
       })
       .join("");
 
-    tableTbody.innerHTML = headerHTML + rowsHTML;
+    cflevelsTbody.innerHTML = headerHTML + rowsHTML;
+
+    if (nativeTbody) nativeTbody.style.display = "none";
+    cflevelsTbody.style.display = "";
+
+    const nativePagination = document.querySelector(".pagination:not(.cflevels-pagination)");
+    if (nativePagination) nativePagination.style.display = "none";
+
     renderPagination(currentPage, totalPages, totalCount);
 
     if (sideStatusEl) {
@@ -599,17 +511,15 @@
   }
 
   function renderPagination(current, totalPages, totalCount) {
-    let paginationEl = document.querySelector(".pagination");
-    if (!paginationEl) {
-      paginationEl = document.createElement("div");
-      paginationEl.className = "pagination cflevels-pagination";
-      problemsTable.parentElement.appendChild(paginationEl);
-    } else {
-      paginationEl.classList.add("cflevels-pagination");
+    if (!cflevelsPaginationEl) {
+      cflevelsPaginationEl = document.createElement("div");
+      cflevelsPaginationEl.className = "pagination cflevels-pagination";
+      problemsTable.parentElement.appendChild(cflevelsPaginationEl);
     }
+    cflevelsPaginationEl.style.display = "";
 
     if (totalCount === 0) {
-      paginationEl.innerHTML = `<div style="text-align: center; color: #666; padding: 1em;">No problems found matching this filter.</div>`;
+      cflevelsPaginationEl.innerHTML = `<div style="text-align: center; color: #666; padding: 1em;">No problems found matching this filter.</div>`;
       return;
     }
 
@@ -646,9 +556,9 @@
       })
       .join("");
 
-    paginationEl.innerHTML = `<ul>${prevArrow}${pagesHTML}${nextArrow}</ul>`;
+    cflevelsPaginationEl.innerHTML = `<ul>${prevArrow}${pagesHTML}${nextArrow}</ul>`;
 
-    paginationEl.querySelectorAll("a[data-page]").forEach((a) => {
+    cflevelsPaginationEl.querySelectorAll("a[data-page]").forEach((a) => {
       a.addEventListener("click", (e) => {
         e.preventDefault();
         const p = parseInt(a.getAttribute("data-page"), 10);
@@ -664,23 +574,20 @@
   function restoreNativeTable() {
     if (!isFilteredViewActive) return;
 
-    if (tableTbody && nativeTbodyHTML) {
-      tableTbody.innerHTML = nativeTbodyHTML;
-      const showTags = shouldShowTagsForUnsolved();
-      if (!showTags) {
-        tableTbody.querySelectorAll("tr:not(.accepted-problem)").forEach((row) => {
-          const tagDiv = row.querySelector("td:nth-child(2) div[style*='float: right']");
-          if (tagDiv) {
-            tagDiv.style.display = "none";
-          }
-        });
-      }
-      updateNativeAcceptedProblemsVisibility();
+    if (cflevelsTbody) {
+      cflevelsTbody.style.display = "none";
+      cflevelsTbody.innerHTML = "";
+    }
+    if (nativeTbody) {
+      nativeTbody.style.display = "";
     }
 
-    const paginationEl = document.querySelector(".pagination");
-    if (paginationEl && nativePaginationHTML) {
-      paginationEl.outerHTML = nativePaginationHTML;
+    const nativePagination = document.querySelector(".pagination:not(.cflevels-pagination)");
+    if (nativePagination) {
+      nativePagination.style.display = "";
+    }
+    if (cflevelsPaginationEl) {
+      cflevelsPaginationEl.style.display = "none";
     }
 
     if (sideStatusEl) {
@@ -894,23 +801,19 @@
 
   function buildUI(table) {
     problemsTable = table;
-    tableTbody = table.querySelector("tbody") || table;
+    nativeTbody = table.querySelector("tbody") || table;
 
-    if (!nativeTbodyHTML) {
-      nativeTbodyHTML = tableTbody.innerHTML;
-      initialNativeShowsTagsForUnsolved = detectInitialNativeTagVisibility(table);
-    }
-    const nativePagination = document.querySelector(".pagination");
-    if (nativePagination && !nativePaginationHTML) {
-      nativePaginationHTML = nativePagination.outerHTML;
+    if (!cflevelsTbody) {
+      cflevelsTbody = document.createElement("tbody");
+      cflevelsTbody.id = "cflevels-tbody";
+      cflevelsTbody.style.display = "none";
+      problemsTable.appendChild(cflevelsTbody);
     }
 
     if (!nativeListenersAttached) {
       attachNativeSettingsListeners();
       nativeListenersAttached = true;
     }
-
-    updateNativeAcceptedProblemsVisibility();
 
     const subImg = table.querySelector("td.act img");
     if (subImg && subImg.src) submitIconSrc = subImg.src;
@@ -1030,29 +933,6 @@
           closeAllMenus();
         }
       });
-
-      const optionRow = document.createElement("div");
-      optionRow.className = "cflevels-option-row";
-
-      const hideSolvedLabel = document.createElement("label");
-      hideSolvedLabel.className = "cflevels-checkbox-label";
-
-      const hideSolvedCb = document.createElement("input");
-      hideSolvedCb.type = "checkbox";
-      hideSolvedCb.id = "cflevels-hide-solved";
-      hideSolvedCb.checked = isHideSolvedActive();
-
-      const hideSolvedText = document.createElement("span");
-      hideSolvedText.textContent = "Hide solved problems";
-
-      hideSolvedCb.addEventListener("change", () => {
-        setHideSolved(hideSolvedCb.checked);
-      });
-
-      hideSolvedLabel.appendChild(hideSolvedCb);
-      hideSolvedLabel.appendChild(hideSolvedText);
-      optionRow.appendChild(hideSolvedLabel);
-      body.appendChild(optionRow);
 
       const btnRow = document.createElement("div");
       btnRow.className = "cflevels-button-row";
@@ -1254,8 +1134,6 @@
           });
           if (isFilteredViewActive) {
             renderFilteredTable();
-          } else {
-            updateNativeAcceptedProblemsVisibility();
           }
         }
       }
@@ -1288,11 +1166,6 @@
         if (oldLevel) {
           selectedLevels = new Set([oldLevel]);
         }
-      }
-
-      const storedHideSolved = sessionStorage.getItem("cflevels_hide_solved");
-      if (storedHideSolved !== null) {
-        hideSolvedProblems = storedHideSolved === "1";
       }
     } catch (_) {}
 
