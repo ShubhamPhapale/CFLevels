@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "CFLevels",
-  "version": "1.4.0",
-  "description": "Filter Codeforces problemset by contest type (Div. 1, Div. 2, etc.) and problem level (A, A1, B, C, etc.)",
+  "version": "1.4.1",
+  "description": "Filter problems on Codeforces by contest division and problem index directly in the problemset sidebar.",
   "author": "Shubham Phapale",
   "homepage_url": "https://github.com/ShubhamPhapale/CFLevels",
   "permissions": ["storage"],
