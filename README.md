@@ -33,7 +33,7 @@ This project came directly out of my own frustration and personal need while pra
 ## Installation
 
 ### From Chrome Web Store
-*(Pending review, link will be added once live)*
+Install directly from the [Chrome Web Store](https://chromewebstore.google.com/detail/cflevels/hlacaobijkaobdbhndhmponpdignoloh).
 
 ### Load Unpacked (Manual)
 
